@@ -23,8 +23,16 @@ export async function signUp({ email, password, firstName, lastName, phone = '' 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { first_name: firstName, last_name: lastName, phone } }
+    options: {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        phone
+      },
+      emailRedirectTo: 'https://chezhiyan276.github.io/Adobe/'
+    }
   })
+
   if (error) throw error
 
   if (data.user) {
@@ -51,6 +59,7 @@ export async function signIn({ email, password }) {
     localStorage.setItem('urbancart_demo_user', JSON.stringify(user))
     return { user, demo: true }
   }
+
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
   return { user: data.user, demo: false }
@@ -96,6 +105,7 @@ export async function createOrder(userId, cart, shippingAddress, customer = {}) 
     customer_phone: customer.phone || shippingAddress.phone || '',
     shipping_address: shippingAddress
   }).select().single()
+
   if (error) throw error
 
   const items = cart.map(item => ({
@@ -111,6 +121,7 @@ export async function createOrder(userId, cart, shippingAddress, customer = {}) 
 
   const { error: itemError } = await supabase.from('order_items').insert(items)
   if (itemError) throw itemError
+
   return { ...order, items: cart }
 }
 
@@ -129,6 +140,7 @@ export async function saveAddress(userId, address) {
     localStorage.setItem('urbancart_demo_addresses', JSON.stringify(all))
     return saved
   }
+
   const { data, error } = await supabase.from('addresses').insert({ user_id: userId, ...address }).select().single()
   if (error) throw error
   return data
