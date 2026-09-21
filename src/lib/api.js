@@ -16,7 +16,9 @@ export async function getProducts() {
   }
 
   if (!data?.length) {
-    console.warn('Supabase products table returned no active products')
+    console.warn(
+      'Supabase products table returned no active products'
+    )
     return []
   }
 
@@ -25,7 +27,10 @@ export async function getProducts() {
 
 export async function getProductById(id) {
   const products = await getProducts()
-  return products.find(p => p.id === id || p.sku === id)
+
+  return products.find(
+    p => p.id === id || p.sku === id
+  )
 }
 
 export async function signUp({
@@ -41,10 +46,12 @@ export async function signUp({
       email,
       user_metadata: {
         first_name: firstName,
-        last_name: lastName
+        last_name: lastName,
+        phone
       },
       first_name: firstName,
       last_name: lastName,
+      phone,
       customer_id: 'UC-CUST-DEMO01'
     }
 
@@ -220,6 +227,9 @@ export async function createOrder(
       .toString()
       .slice(-8)}`
 
+  /*
+   * Demo/local-storage mode
+   */
   if (!supabaseConfigured) {
     const orders =
       JSON.parse(
@@ -231,6 +241,7 @@ export async function createOrder(
     const order = {
       id: crypto.randomUUID(),
       user_id: userId,
+      customer_id: 'UC-CUST-DEMO01',
       order_number: orderNumber,
       status: 'placed',
       currency: 'INR',
@@ -264,6 +275,42 @@ export async function createOrder(
     return order
   }
 
+  /*
+   * Get the UrbanCart Customer ID
+   * from the customer's profile.
+   */
+  const {
+    data: profile,
+    error: profileError
+  } = await supabase
+    .from('profiles')
+    .select('customer_id')
+    .eq('id', userId)
+    .single()
+
+  if (profileError) {
+    console.error(
+      'Unable to retrieve customer profile:',
+      profileError
+    )
+
+    throw new Error(
+      `Unable to retrieve customer ID: ${profileError.message}`
+    )
+  }
+
+  const customerId =
+    profile?.customer_id
+
+  if (!customerId) {
+    throw new Error(
+      'Customer ID is missing from the customer profile'
+    )
+  }
+
+  /*
+   * Create the order
+   */
   const {
     data: order,
     error
@@ -271,6 +318,7 @@ export async function createOrder(
     .from('orders')
     .insert({
       user_id: userId,
+      customer_id: customerId,
       order_number: orderNumber,
       status: 'placed',
       currency: 'INR',
@@ -295,6 +343,9 @@ export async function createOrder(
 
   if (error) throw error
 
+  /*
+   * Create order items
+   */
   const items = cart.map(item => ({
     order_id: order.id,
 
@@ -317,7 +368,9 @@ export async function createOrder(
       .from('order_items')
       .insert(items)
 
-  if (itemError) throw itemError
+  if (itemError) {
+    throw itemError
+  }
 
   return {
     ...order,
@@ -349,7 +402,14 @@ export async function getOrders(
       ascending: false
     })
 
-  if (error) return []
+  if (error) {
+    console.error(
+      'Supabase orders error:',
+      error
+    )
+
+    return []
+  }
 
   return data || []
 }
