@@ -39,18 +39,20 @@ export default function Checkout() {
     setError('')
 
     try {
-      // 1. Save the delivery address to Supabase
+      // 1. Save delivery address to Supabase
       await saveAddress(user.id, {
         full_name: form.full_name,
         phone: form.phone,
-        line1: form.line1,
+        address_line1: form.line1,
+        address_line2: '',
         city: form.city,
         state: form.state,
         postal_code: form.postal_code,
-        country: form.country
+        country: form.country,
+        is_default: true
       })
 
-      // 2. Create the order in Supabase
+      // 2. Create order in Supabase
       const order = await createOrder(
         user.id,
         cart,
