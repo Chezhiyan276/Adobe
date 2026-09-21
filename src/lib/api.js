@@ -418,6 +418,9 @@ export async function saveAddress(
   userId,
   address
 ) {
+  /*
+   * Demo/local-storage mode
+   */
   if (!supabaseConfigured) {
     const all =
       JSON.parse(
@@ -429,7 +432,8 @@ export async function saveAddress(
     const saved = {
       ...address,
       id: crypto.randomUUID(),
-      user_id: userId
+      user_id: userId,
+      customer_id: 'UC-CUST-DEMO01'
     }
 
     all.unshift(saved)
@@ -442,6 +446,43 @@ export async function saveAddress(
     return saved
   }
 
+  /*
+   * Get the UrbanCart Customer ID
+   * from the customer's profile.
+   */
+  const {
+    data: profile,
+    error: profileError
+  } = await supabase
+    .from('profiles')
+    .select('customer_id')
+    .eq('id', userId)
+    .single()
+
+  if (profileError) {
+    console.error(
+      'Unable to retrieve customer profile:',
+      profileError
+    )
+
+    throw new Error(
+      `Unable to retrieve customer ID: ${profileError.message}`
+    )
+  }
+
+  const customerId =
+    profile?.customer_id
+
+  if (!customerId) {
+    throw new Error(
+      'Customer ID is missing from the customer profile'
+    )
+  }
+
+  /*
+   * Save the address with both
+   * Supabase user ID and UrbanCart Customer ID.
+   */
   const {
     data,
     error
@@ -449,6 +490,7 @@ export async function saveAddress(
     .from('addresses')
     .insert({
       user_id: userId,
+      customer_id: customerId,
       ...address
     })
     .select()
